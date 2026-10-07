@@ -1,9 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  experimental: {
+    // Allow image uploads up to 5 MB through Server Actions (default is 1 MB)
+    serverActions: { bodySizeLimit: '4.5mb' },
+  },
 };
 
 export default nextConfig;
