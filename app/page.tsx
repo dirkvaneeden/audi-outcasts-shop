@@ -5,6 +5,8 @@ import { getCartLines } from '@/lib/cart';
 import { formatMoney } from '@/lib/format';
 import type { CatalogueItem } from '@/lib/types';
 import { AddToCartDialog } from '@/components/AddToCartDialog';
+import { PromotionQueue } from '@/components/PromotionPopup';
+import { getPromotionsForMember } from '@/lib/promotions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +26,9 @@ export default async function StorePage({
     .order('name');
   if (term) query = query.ilike('name', `%${term.replace(/[\\%_]/g, (c) => '\\' + c)}%`);
 
-  const [{ data, error }, cart] = await Promise.all([query, getCartLines(member.id)]);
+  const [{ data, error }, cart, promotions] = await Promise.all([
+    query, getCartLines(member.id), getPromotionsForMember(member.id),
+  ]);
   const items = (data ?? []) as CatalogueItem[];
   // Quantity in the cart per item, across all its sizes and colours
   const inCart = new Map<string, number>();
@@ -42,6 +46,7 @@ export default async function StorePage({
             <>
               <Link href="/items" className="page-header__link">Manage Items</Link>
               <Link href="/admin/orders" className="page-header__link">Manage Orders</Link>
+              <Link href="/admin/promotions" className="page-header__link">Promotions</Link>
               <Link href="/admin/banking" className="page-header__link">Banking Details</Link>
             </>
           )}
@@ -104,6 +109,9 @@ export default async function StorePage({
           )}
         </section>
       </div>
+      {/* Pop-up for promotions this member hasn't responded to yet.
+          Always rendered, so it stays open while the page refreshes after "Add to Cart". */}
+      <PromotionQueue promotions={promotions} />
     </>
   );
 }

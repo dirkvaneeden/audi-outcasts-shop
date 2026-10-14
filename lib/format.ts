@@ -50,4 +50,19 @@ export function formatDateTime(iso: string) {
   return `${d} ${m} ${y}, ${h}:${min}`;
 }
 
+/** Today's date in the store's time zone, as YYYY-MM-DD. */
+export function todayISO() {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(new Date()).map((x) => [x.type, x.value]),
+  );
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+/** "2026-10-31" -> "31 Oct 2026" (a calendar date, no time zone shift). */
+export function formatDay(isoDate: string) {
+  const [y, m, d] = isoDate.slice(0, 10).split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+}
+
 export { ORDER_STATUS_LABEL } from '@/lib/order-status';

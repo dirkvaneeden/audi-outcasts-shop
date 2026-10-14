@@ -97,3 +97,34 @@ export type OrderStatusLogEntry = {
   changed_at: string;
   changer: { name: string } | null;
 };
+
+/** A promotion running today, with its item (as shown in the pop-up). */
+export type LivePromotion = {
+  id: string;
+  item_id: string;
+  title: string;
+  message: string;
+  starts_on: string;   // YYYY-MM-DD
+  ends_on: string;
+  item_name: string;
+  item_description: string | null;
+  image_url: string | null;
+  selling_price: number;
+  sizes: string[];
+  colours: string[];
+};
+
+/** A promotion as maintained on the admin pages. */
+export type Promotion = {
+  id: string;
+  item_id: string;
+  title: string;
+  message: string;
+  starts_on: string;
+  ends_on: string;
+  is_active: boolean;
+  created_at: string;
+  item: { name: string; image_url: string | null; is_deleted: boolean } | null;
+  added: number;     // members who added it to their cart
+  ignored: number;   // members who ignored it
+};
