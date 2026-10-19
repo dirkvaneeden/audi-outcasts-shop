@@ -6,8 +6,10 @@ import type { Promotion } from '@/lib/types';
 import { formatDay, formatMoney, todayISO } from '@/lib/format';
 import type { PromotionFormState } from '@/app/admin/promotions/actions';
 import { resetPromotionResponses } from '@/app/admin/promotions/actions';
+import { discountedPrice, maxDiscountPercent } from '@/lib/discount';
+import { Price } from '@/components/Price';
 
-type ItemChoice = { id: string; name: string; image_url: string | null; selling_price: number };
+type ItemChoice = { id: string; name: string; image_url: string | null; selling_price: number; purchase_price: number };
 
 export function PromotionForm({
   promotion, items, action,
@@ -26,7 +28,14 @@ export function PromotionForm({
   const [startsOn, setStartsOn] = useState(promotion?.starts_on ?? today);
   const [endsOn, setEndsOn] = useState(promotion?.ends_on ?? '');
   const [markDeleted, setMarkDeleted] = useState(false);
+  const [discount, setDiscount] = useState(promotion?.discount_percent ? String(promotion.discount_percent) : '');
   const item = items.find((i) => i.id === itemId);
+
+  // Discount limit = the item's markup, so the promotion price never goes below cost
+  const maxDiscount = item ? maxDiscountPercent(item.selling_price, item.purchase_price) : 0;
+  const discountValue = Number(discount.replace(',', '.')) || 0;
+  const tooHigh = !!item && discountValue > maxDiscount;
+  const promoPrice = item ? discountedPrice(item.selling_price, item.purchase_price, tooHigh ? 0 : discountValue) : 0;
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,6 +76,33 @@ export function PromotionForm({
                     {items.map((i) => <option key={i.id} value={i.id}>{i.name} ({formatMoney(i.selling_price)})</option>)}
                   </select>
                   {err.item_id && <p className="field-error">{err.item_id}</p>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="discount_percent" className="form-label">Discount</label>
+                <div className="form-field">
+                  <div className="input-group">
+                    <input id="discount_percent" name="discount_percent" className="input input--num" type="number"
+                      inputMode="decimal" step="0.01" min="0" max={maxDiscount || undefined} value={discount}
+                      onChange={(e) => setDiscount(e.target.value)} placeholder="0"
+                      aria-invalid={!!err.discount_percent || tooHigh} />
+                    <span className="input-group__unit">%</span>
+                  </div>
+                  {item ? (
+                    maxDiscount > 0 ? (
+                      <p className={tooHigh ? 'field-error' : 'hint'}>
+                        Maximum {maxDiscount}% (the item’s markup). Cost {formatMoney(item.purchase_price)},
+                        selling price {formatMoney(item.selling_price)}
+                        {discountValue > 0 && !tooHigh && <>, promotion price <strong>{formatMoney(promoPrice)}</strong></>}.
+                      </p>
+                    ) : (
+                      <p className="hint">This item has no markup, so it can’t be discounted.</p>
+                    )
+                  ) : (
+                    <p className="hint">Choose an item to see the maximum discount. Leave empty for no discount.</p>
+                  )}
+                  {err.discount_percent && <p className="field-error">{err.discount_percent}</p>}
                 </div>
               </div>
 
@@ -149,7 +185,7 @@ export function PromotionForm({
           <aside className="panel promo-preview" aria-label="Preview">
             <p className="hint promo-preview__label">Preview</p>
             <div className="promo__banner">
-              <span className="promo__badge">Promotion</span>
+              <span className="promo__badge">{discountValue > 0 && !tooHigh ? `${discountValue}% off` : 'Promotion'}</span>
               <p className="promo__title">{title || 'Promotion title'}</p>
               <p className="promo__dates">{endsOn ? `Until ${formatDay(endsOn)}` : 'Until …'}</p>
             </div>
@@ -164,7 +200,11 @@ export function PromotionForm({
                 </div>
                 <div>
                   <p className="dialog__name">{item?.name ?? 'Choose an item'}</p>
-                  {item && <p className="dialog__price">{formatMoney(item.selling_price)}</p>}
+                  {item && (
+                    <p className="dialog__price">
+                      <Price price={promoPrice} regular={item.selling_price} discount={tooHigh ? 0 : discountValue} />
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="promo-preview__buttons">

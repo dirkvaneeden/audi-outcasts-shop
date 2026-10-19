@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import type { CatalogueItem } from '@/lib/types';
 import { formatMoney } from '@/lib/format';
 import { addToCart } from '@/app/cart/actions';
+import { Price } from '@/components/Price';
 import { ItemOptionPicker, initialOptions, missingOption, type OptionValues } from '@/components/ItemOptionPicker';
 
 export function AddToCartDialog({ item, inCart }: { item: CatalogueItem; inCart: number }) {
@@ -73,7 +74,9 @@ export function AddToCartDialog({ item, inCart }: { item: CatalogueItem; inCart:
               </div>
               <div>
                 <p className="dialog__name">{item.name}</p>
-                <p className="dialog__price">{formatMoney(item.selling_price)}</p>
+                <p className="dialog__price">
+                  <Price price={item.selling_price} regular={item.regular_price} discount={item.discount_percent} />
+                </p>
               </div>
             </div>
 

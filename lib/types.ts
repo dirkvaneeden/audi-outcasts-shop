@@ -22,7 +22,9 @@ export type CatalogueItem = {
   name: string;
   description: string | null;
   image_url: string | null;
-  selling_price: number;
+  selling_price: number;         // price today (after any promotion discount)
+  regular_price?: number;        // price without the promotion
+  discount_percent?: number;     // 0 when no promotion discount applies
   sizes: string[];
   colours: string[];
 };
@@ -40,6 +42,8 @@ export type CartLine = LineOptions & {
   image_url: string | null;
   selling_price: number;
   line_total: number;
+  regular_price?: number;
+  discount_percent?: number;
 };
 
 export type AccountType = 'Cheque / Current' | 'Savings' | 'Transmission' | 'Business';
@@ -60,6 +64,8 @@ export type BankDetails = {
 export type OrderLine = LineOptions & {
   line_no: number;
   unit_cost?: number | null;     // purchase price per unit; admin pages only
+  regular_price?: number | null; // price before a promotion discount
+  discount_percent?: number;     // promotion discount the line was bought with
   item_id: string | null;
   name: string;
   image_url: string | null;
@@ -87,6 +93,8 @@ export type AdminOrder = Order & {
   delivered_at: string | null;
   rejected_at: string | null;
   status_note: string | null;
+  reminder_count: number;
+  last_reminder_at: string | null;
   member: { member_number: string; name: string; nickname: string | null; email: string; phone: string | null };
 };
 
@@ -109,7 +117,9 @@ export type LivePromotion = {
   item_name: string;
   item_description: string | null;
   image_url: string | null;
-  selling_price: number;
+  selling_price: number;         // promotion price
+  regular_price: number;
+  discount_percent: number;
   sizes: string[];
   colours: string[];
 };
@@ -123,6 +133,7 @@ export type Promotion = {
   starts_on: string;
   ends_on: string;
   is_active: boolean;
+  discount_percent: number;
   created_at: string;
   item: { name: string; image_url: string | null; is_deleted: boolean } | null;
   added: number;     // members who added it to their cart

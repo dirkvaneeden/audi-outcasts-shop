@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { getOpenOrders } from '@/lib/admin-orders';
+import { sendOrderEmail } from '@/lib/orders';
 import { buildOpenOrdersEmail } from '@/lib/email/open-orders-email';
 import { sendEmail } from '@/lib/email/send';
 import { ORDER_STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
@@ -52,4 +53,30 @@ export async function emailOpenOrdersSummary(): Promise<AdminActionResult> {
   } catch (e) {
     return { error: `The summary could not be sent: ${(e as Error).message}` };
   }
+}
+
+/** Emails a payment reminder for each selected unpaid order. */
+export async function sendPaymentReminders(orderIds: string[]): Promise<AdminActionResult> {
+  await requireAdmin();
+  const ids = orderIds.filter((id) => UUID_RE.test(id)).slice(0, 100);
+  if (!ids.length) return { error: 'Select at least one order.' };
+
+  const { data, error } = await supabaseAdmin()
+    .from('orders').select('order_number, status').in('id', ids);
+  if (error) return { error: error.message };
+
+  const unpaid = (data ?? []).filter((o) => o.status === 'awaiting_payment');
+  const skipped = (data ?? []).length - unpaid.length;
+  const failed: string[] = [];
+  for (const o of unpaid) {
+    const r = await sendOrderEmail(o.order_number as string, 'reminder');
+    if (r.error) failed.push(`${o.order_number}: ${r.error}`);
+  }
+
+  revalidatePath('/admin/orders', 'layout');
+  const sent = unpaid.length - failed.length;
+  const parts = [`${sent} payment ${sent === 1 ? 'reminder' : 'reminders'} sent.`];
+  if (skipped) parts.push(`${skipped} skipped because ${skipped === 1 ? 'it is' : 'they are'} not unpaid.`);
+  if (failed.length) return { error: `${parts.join(' ')} Failed: ${failed[0]}${failed.length > 1 ? ` (and ${failed.length - 1} more)` : ''}` };
+  return { info: parts.join(' ') };
 }

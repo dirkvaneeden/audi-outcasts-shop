@@ -29,13 +29,31 @@ type Input = {
   order: Order;
   lines: OrderLine[];
   member: { name: string; nickname: string | null };
+  /** 'reminder' = the same email, worded as a payment reminder for an unpaid order */
+  kind?: 'confirmation' | 'reminder';
 };
 
-export function buildOrderEmail({ order, lines, member }: Input) {
+const discountText = (l: OrderLine) =>
+  l.discount_percent && l.discount_percent > 0 && l.regular_price
+    ? `Promotion: ${Number(l.discount_percent)}% off (was ${formatMoney(l.regular_price)})`
+    : '';
+
+export function buildOrderEmail({ order, lines, member, kind = 'confirmation' }: Input) {
   const bank: BankDetails = order.bank_details;
   const firstName = member.nickname?.trim() || member.name.split(' ')[0];
   const reference = order.order_number;
-  const subject = `Order ${reference}: payment details`;
+  const reminder = kind === 'reminder';
+  const placedOn = formatDateTime(order.created_at);
+  const subject = reminder
+    ? `Payment reminder: order ${reference}`
+    : `Order ${reference}: payment details`;
+  const heading = reminder ? `Payment reminder, ${firstName}` : `Thanks for your order, ${firstName}`;
+  const introHtml = reminder
+    ? `This is a friendly reminder that we haven’t received payment for your order placed on ${esc(placedOn)}.
+       Please pay by EFT using the banking details below, with <strong>${esc(reference)}</strong> as the payment reference.
+       If you have already paid, thank you, and please send us your proof of payment so we can update your order.`
+    : `Your order is reserved and waiting for payment. Please pay by EFT using the banking details below,
+       with <strong>${esc(reference)}</strong> as the payment reference, so we can match your payment.`;
 
   // ---------------- Item rows ----------------
   const itemRows = lines.map((l) => `
@@ -49,6 +67,7 @@ export function buildOrderEmail({ order, lines, member }: Input) {
         <strong>${esc(l.name)}</strong><br>
         ${describeOptions(l) ? `<span style="font-size:13px;color:${C.text};">${esc(describeOptions(l))}</span><br>` : ''}
         ${l.note ? `<span style="font-size:13px;color:${C.label};font-style:italic;">Note: ${esc(l.note)}</span><br>` : ''}
+        ${discountText(l) ? `<span style="font-size:13px;color:#2b7c2b;font-weight:bold;">${esc(discountText(l))}</span><br>` : ''}
         <span style="color:${C.label};font-size:13px;">${l.quantity} &times; ${esc(formatMoney(l.unit_price))}</span>
       </td>
       <td align="right" style="padding:12px 0;border-bottom:1px solid ${C.border};vertical-align:top;font-family:${FONT};font-size:14px;color:${C.text};white-space:nowrap;">
@@ -82,7 +101,7 @@ export function buildOrderEmail({ order, lines, member }: Input) {
 <title>${esc(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background:${C.page};">
-<div style="display:none;max-height:0;overflow:hidden;">Total ${esc(formatMoney(order.total))}. Pay by EFT using reference ${esc(reference)}.</div>
+<div style="display:none;max-height:0;overflow:hidden;">${reminder ? 'Payment reminder. ' : ''}Total ${esc(formatMoney(order.total))}. Pay by EFT using reference ${esc(reference)}.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};">
   <tr><td align="center" style="padding:24px 12px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:6px;overflow:hidden;border:1px solid #d9dee3;">
@@ -95,10 +114,10 @@ export function buildOrderEmail({ order, lines, member }: Input) {
 
       <!-- Intro -->
       <tr><td style="padding:28px 24px 8px;font-family:${FONT};color:${C.text};">
-        <h1 style="margin:0 0 12px;font-size:22px;font-weight:normal;">Thanks for your order, ${esc(firstName)}</h1>
+        ${reminder ? `<span style="display:inline-block;margin-bottom:10px;padding:3px 10px;border-radius:12px;background:#fef7f1;border:1px solid #e78c07;color:#8a5103;font-size:12px;font-weight:bold;">PAYMENT REMINDER</span>` : ''}
+        <h1 style="margin:0 0 12px;font-size:22px;font-weight:normal;">${esc(heading)}</h1>
         <p style="margin:0;font-size:14px;line-height:1.5;">
-          Your order is reserved and waiting for payment. Please pay by EFT using the banking details below,
-          with <strong>${esc(reference)}</strong> as the payment reference, so we can match your payment.
+          ${introHtml}
         </p>
       </td></tr>
 
@@ -159,8 +178,12 @@ export function buildOrderEmail({ order, lines, member }: Input) {
 
   // ---------------- Plain-text version ----------------
   const text = [
-    `Thanks for your order, ${firstName}`,
+    heading,
     '',
+    ...(reminder
+      ? [`We haven't received payment for your order placed on ${placedOn} yet. Please pay by EFT using reference ${reference}.`,
+         'If you have already paid, thank you, and please send us your proof of payment.', '']
+      : []),
     `Order number: ${reference}`,
     `Placed: ${formatDateTime(order.created_at)}`,
     '',
@@ -168,6 +191,7 @@ export function buildOrderEmail({ order, lines, member }: Input) {
     ...lines.map((l) => [
       `- ${l.name}${describeOptions(l) ? ` (${describeOptions(l)})` : ''}: ${l.quantity} x ${formatMoney(l.unit_price)} = ${formatMoney(l.line_total)}`,
       ...(l.note ? [`  Note: ${l.note}`] : []),
+      ...(discountText(l) ? [`  ${discountText(l)}`] : []),
     ].join('\n')),
     '',
     `TOTAL: ${formatMoney(order.total)}`,

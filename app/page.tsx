@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { requireMember, displayName } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { getCartLines } from '@/lib/cart';
-import { formatMoney } from '@/lib/format';
 import type { CatalogueItem } from '@/lib/types';
 import { AddToCartDialog } from '@/components/AddToCartDialog';
+import { Price } from '@/components/Price';
 import { PromotionQueue } from '@/components/PromotionPopup';
 import { getPromotionsForMember } from '@/lib/promotions';
 
@@ -22,7 +22,7 @@ export default async function StorePage({
   // The catalogue view only contains active (not deleted) items
   let query = supabaseAdmin()
     .from('catalogue')
-    .select('id, name, description, image_url, selling_price, sizes, colours')
+    .select('id, name, description, image_url, selling_price, sizes, colours, regular_price, discount_percent')
     .order('name');
   if (term) query = query.ilike('name', `%${term.replace(/[\\%_]/g, (c) => '\\' + c)}%`);
 
@@ -100,7 +100,9 @@ export default async function StorePage({
                         {item.colours?.length > 0 && <span>{item.colours.length === 1 ? item.colours[0] : `${item.colours.length} colours`}</span>}
                       </p>
                     )}
-                    <p className="product__price">{formatMoney(item.selling_price)}</p>
+                    <p className="product__price">
+                      <Price price={item.selling_price} regular={item.regular_price} discount={item.discount_percent} />
+                    </p>
                     <AddToCartDialog item={item} inCart={inCart.get(item.id) ?? 0} />
                   </div>
                 </li>

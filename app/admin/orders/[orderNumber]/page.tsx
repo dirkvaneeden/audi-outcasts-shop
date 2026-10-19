@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { LineOptions } from '@/components/LineOptions';
+import { Price } from '@/components/Price';
 import { getAdminOrder } from '@/lib/admin-orders';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { ORDER_STATUS_LABEL } from '@/lib/order-status';
 import { OrderStatusActions } from '@/components/OrderStatusActions';
+import { PaymentReminderButton } from '@/components/PaymentReminderButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +63,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
                     <div className="cart-line__info">
                       <h3 className="cart-line__name">{l.name}</h3>
                     <LineOptions size={l.size} colour={l.colour} note={l.note} />
-                      <p className="cart-line__unit">{l.quantity} × {formatMoney(l.unit_price)}</p>
+                      <p className="cart-line__unit">{l.quantity} × <Price price={l.unit_price} regular={l.regular_price} discount={l.discount_percent} /></p>
                     </div>
                     <p className="cart-line__total">{formatMoney(l.line_total)}</p>
                   </li>
@@ -97,6 +99,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
                 ))}
               </ol>
               <OrderStatusActions orderId={order.id} status={order.status} />
+              {order.status === 'awaiting_payment' && <PaymentReminderButton orderId={order.id} />}
             </section>
 
             <section className="panel cart__summary" aria-labelledby="member-title">
@@ -116,6 +119,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
                 <div><dt>Amount</dt><dd>{formatMoney(order.total)}</dd></div>
                 <div><dt>Into account</dt><dd>{order.bank_details.bank_name} {order.bank_details.account_number}</dd></div>
                 <div><dt>Order email</dt><dd>{order.email_sent_at ? `Sent ${formatDateTime(order.email_sent_at)}` : 'Not sent'}</dd></div>
+                <div><dt>Reminders</dt><dd>{order.reminder_count > 0
+                  ? `${order.reminder_count} sent${order.last_reminder_at ? `, last ${formatDateTime(order.last_reminder_at)}` : ''}`
+                  : 'None'}</dd></div>
               </dl>
             </section>
           </aside>

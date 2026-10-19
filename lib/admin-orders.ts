@@ -4,9 +4,9 @@ import type { AdminOrder, OrderLine, OrderStatusLogEntry } from '@/lib/types';
 import type { OrderStatus } from '@/lib/order-status';
 
 const COLUMNS = `id, order_number, status, item_count, total, bank_details, email_sent_at, email_error,
-  created_at, paid_at, ordered_at, delivered_at, rejected_at, status_note,
+  created_at, paid_at, ordered_at, delivered_at, rejected_at, status_note, reminder_count, last_reminder_at,
   member:members (member_number, name, nickname, email, phone)`;
-const LINE_COLUMNS = 'line_no, item_id, name, image_url, unit_price, quantity, line_total, size, colour, note, unit_cost';
+const LINE_COLUMNS = 'line_no, item_id, name, image_url, unit_price, quantity, line_total, size, colour, note, unit_cost, regular_price, discount_percent';
 
 function toOrder(row: Record<string, unknown>): AdminOrder {
   return { ...(row as unknown as AdminOrder), total: Number(row.total), item_count: Number(row.item_count) };
@@ -20,6 +20,8 @@ function toLines(rows: Record<string, unknown>[] | null | undefined): OrderLine[
       quantity: Number(l.quantity),
       line_total: Number(l.line_total),
       unit_cost: l.unit_cost == null ? null : Number(l.unit_cost),
+      regular_price: l.regular_price == null ? null : Number(l.regular_price),
+      discount_percent: Number(l.discount_percent ?? 0),
     }))
     .sort((a, b) => a.line_no - b.line_no);
 }

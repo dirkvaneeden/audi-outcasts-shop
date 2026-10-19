@@ -56,6 +56,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                   <th className="rtable__img"><span className="sr-only">Image</span></th>
                   <th>Promotion</th>
                   <th>Dates</th>
+                  <th className="num">Discount</th>
                   <th>Status</th>
                   <th className="num">Added</th>
                   <th className="num">Ignored</th>
@@ -78,6 +79,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                         <span className="rtable__desc">{p.item?.name ?? 'Unknown item'}</span>
                       </td>
                       <td data-label="Dates">{formatDay(p.starts_on)} – {formatDay(p.ends_on)}</td>
+                      <td className="num" data-label="Discount">{p.discount_percent > 0 ? `${p.discount_percent}%` : '–'}</td>
                       <td data-label="Status"><span className={`status status--promo-${state}`}>{STATE_LABEL[state]}</span></td>
                       <td className="num" data-label="Added">{p.added}</td>
                       <td className="num" data-label="Ignored">{p.ignored}</td>

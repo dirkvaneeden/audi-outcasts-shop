@@ -7,7 +7,7 @@ import type { CartLine } from '@/lib/types';
 export const getCartLines = cache(async (memberId: string): Promise<{ lines: CartLine[]; error?: string }> => {
   const { data, error } = await supabaseAdmin()
     .from('cart_lines')
-    .select('line_id, item_id, quantity, name, description, image_url, selling_price, line_total, size, colour, note')
+    .select('line_id, item_id, quantity, name, description, image_url, selling_price, line_total, size, colour, note, regular_price, discount_percent')
     .eq('member_id', memberId)
     .order('added_at', { ascending: true });
 
@@ -18,6 +18,8 @@ export const getCartLines = cache(async (memberId: string): Promise<{ lines: Car
     quantity: Number(l.quantity),
     selling_price: Number(l.selling_price),
     line_total: Number(l.line_total),
+    regular_price: Number(l.regular_price ?? l.selling_price),
+    discount_percent: Number(l.discount_percent ?? 0),
   })) as CartLine[];
   return { lines };
 });

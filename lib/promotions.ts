@@ -12,7 +12,14 @@ export async function getPromotionsForMember(memberId: string): Promise<LiveProm
   const done = new Set((answered ?? []).map((r) => r.promotion_id as string));
   return ((live ?? []) as LivePromotion[])
     .filter((p) => !done.has(p.id))
-    .map((p) => ({ ...p, selling_price: Number(p.selling_price), sizes: p.sizes ?? [], colours: p.colours ?? [] }));
+    .map((p) => ({
+      ...p,
+      selling_price: Number(p.selling_price),
+      regular_price: Number(p.regular_price ?? p.selling_price),
+      discount_percent: Number(p.discount_percent ?? 0),
+      sizes: p.sizes ?? [],
+      colours: p.colours ?? [],
+    }));
 }
 
 /** Is this promotion running today? Returns its item id, or null. */
@@ -22,7 +29,7 @@ export async function getLivePromotionItem(promotionId: string): Promise<string 
   return (data?.item_id as string | undefined) ?? null;
 }
 
-const ADMIN_COLUMNS = `id, item_id, title, message, starts_on, ends_on, is_active, created_at,
+const ADMIN_COLUMNS = `id, item_id, title, message, starts_on, ends_on, is_active, discount_percent, created_at,
   item:items (name, image_url, is_deleted),
   promotion_responses (response)`;
 
@@ -31,6 +38,7 @@ function toPromotion(row: Record<string, unknown>): Promotion {
   const { promotion_responses: _r, ...rest } = row;
   return {
     ...(rest as unknown as Promotion),
+    discount_percent: Number((rest as { discount_percent?: unknown }).discount_percent ?? 0),
     added: responses.filter((r) => r.response === 'added').length,
     ignored: responses.filter((r) => r.response === 'ignored').length,
   };

@@ -5,6 +5,7 @@ import { formatMoney } from '@/lib/format';
 import { CartQuantity } from '@/components/CartQuantity';
 import { PlaceOrderButton } from '@/components/PlaceOrderButton';
 import { LineOptions } from '@/components/LineOptions';
+import { Price } from '@/components/Price';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +58,9 @@ export default async function CartPage() {
                     <div className="cart-line__info">
                       <h3 className="cart-line__name">{line.name}</h3>
                       <LineOptions size={line.size} colour={line.colour} note={line.note} />
-                      <p className="cart-line__unit">{formatMoney(line.selling_price)} each</p>
+                      <p className="cart-line__unit">
+                        <Price price={line.selling_price} regular={line.regular_price} discount={line.discount_percent} /> each
+                      </p>
                       <CartQuantity lineId={line.line_id} itemName={line.name} quantity={line.quantity} />
                     </div>
                     <p className="cart-line__total">{formatMoney(line.line_total)}</p>

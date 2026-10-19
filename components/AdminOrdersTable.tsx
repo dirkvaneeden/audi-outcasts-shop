@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import type { AdminOrder } from '@/lib/types';
 import { ORDER_STATUS_LABEL, primaryTransition, type OrderStatus } from '@/lib/order-status';
 import { formatDate, formatMoney } from '@/lib/format';
-import { setOrderStatus, type AdminActionResult } from '@/app/admin/orders/actions';
+import { sendPaymentReminders, setOrderStatus, type AdminActionResult } from '@/app/admin/orders/actions';
 
 const DATE_COLUMN: Record<string, { label: string; field: keyof AdminOrder }> = {
   awaiting_payment: { label: 'Placed', field: 'created_at' },
@@ -33,6 +33,15 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
     });
   }
 
+  function remind(ids: string[]) {
+    if (!window.confirm(ids.length === 1 ? 'Email a payment reminder for this order?' : `Email payment reminders for ${ids.length} orders?`)) return;
+    startTransition(async () => {
+      const r = await sendPaymentReminders(ids);
+      setResult(r);
+      if (!r.error) setSelected(new Set());
+    });
+  }
+
   function run(ids: string[], to: OrderStatus, label: string) {
     if (ids.length > 1 && !window.confirm(`${label}: ${ids.length} orders?`)) return;
     startTransition(async () => {
@@ -47,10 +56,18 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
       {bulk && (
         <div className="bulkbar">
           <span className="bulkbar__count">{selected.size ? `${selected.size} selected` : 'Select orders to update several at once'}</span>
-          <button type="button" className="btn btn--emphasized" disabled={pending || selected.size === 0}
-            onClick={() => run([...selected], bulk.to, bulk.label)}>
-            {pending ? 'Updating…' : `${bulk.label}${selected.size ? ` (${selected.size})` : ''}`}
-          </button>
+          <span className="bulkbar__buttons">
+            {tab === 'awaiting_payment' && (
+              <button type="button" className="btn" disabled={pending || selected.size === 0}
+                onClick={() => remind([...selected])}>
+                {`Send Payment Reminder${selected.size ? ` (${selected.size})` : ''}`}
+              </button>
+            )}
+            <button type="button" className="btn btn--emphasized" disabled={pending || selected.size === 0}
+              onClick={() => run([...selected], bulk.to, bulk.label)}>
+              {pending ? 'Updating…' : `${bulk.label}${selected.size ? ` (${selected.size})` : ''}`}
+            </button>
+          </span>
         </div>
       )}
       {(result.error || result.info) && (
@@ -96,6 +113,11 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
                 <td data-label="Member">
                   {o.member.name}
                   <span className="rtable__desc">{o.member.member_number}</span>
+                  {o.status === 'awaiting_payment' && o.reminder_count > 0 && (
+                    <span className="reminded">
+                      Reminded {o.reminder_count}×{o.last_reminder_at ? `, last ${formatDate(o.last_reminder_at)}` : ''}
+                    </span>
+                  )}
                 </td>
                 <td data-label={dateCol.label}>{date ? formatDate(date) : '–'}</td>
                 <td className="num" data-label="Items">{o.item_count}</td>

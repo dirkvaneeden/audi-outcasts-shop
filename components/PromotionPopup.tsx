@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import type { LivePromotion } from '@/lib/types';
 import { formatDay, formatMoney } from '@/lib/format';
 import { addPromotionToCart, ignorePromotion } from '@/app/promotions/actions';
+import { Price } from '@/components/Price';
 import { ItemOptionPicker, initialOptions, missingOption, type OptionValues } from '@/components/ItemOptionPicker';
 
 /**
@@ -63,7 +64,7 @@ function PromotionPopup({ promo, onDone }: { promo: LivePromotion; onDone: () =>
       onCancel={(e) => { e.preventDefault(); if (pending) return; if (added) finish(); else ignore(); }}>
       <form className="dialog__form" onSubmit={add} noValidate>
         <header className="promo__banner">
-          <span className="promo__badge">Promotion</span>
+          <span className="promo__badge">{promo.discount_percent > 0 ? `${Number(promo.discount_percent)}% off` : 'Promotion'}</span>
           <h2 id={`${uid}-title`} className="promo__title">{promo.title}</h2>
           <p className="promo__dates">Until {formatDay(promo.ends_on)}</p>
         </header>
@@ -83,7 +84,9 @@ function PromotionPopup({ promo, onDone }: { promo: LivePromotion; onDone: () =>
                 <div>
                   <p className="dialog__name">{promo.item_name}</p>
                   {promo.item_description && <p className="hint promo__desc">{promo.item_description}</p>}
-                  <p className="dialog__price">{formatMoney(promo.selling_price)}</p>
+                  <p className="dialog__price">
+                    <Price price={promo.selling_price} regular={promo.regular_price} discount={promo.discount_percent} />
+                  </p>
                 </div>
               </div>
 

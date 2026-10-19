@@ -4,10 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import { maxDiscountPercent } from '@/lib/discount';
 
 export type PromotionFormState = {
   message?: string;
-  fieldErrors?: Partial<Record<'item_id' | 'title' | 'message' | 'starts_on' | 'ends_on', string>>;
+  fieldErrors?: Partial<Record<'item_id' | 'title' | 'message' | 'starts_on' | 'ends_on' | 'discount_percent', string>>;
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -21,13 +22,29 @@ async function readForm(formData: FormData) {
   const starts_on = String(formData.get('starts_on') ?? '');
   const ends_on = String(formData.get('ends_on') ?? '');
   const is_active = formData.get('is_active') === 'on';
+  const rawDiscount = String(formData.get('discount_percent') ?? '').trim().replace(',', '.');
+  const discount_percent = rawDiscount === '' ? 0 : Math.round(Number(rawDiscount) * 100) / 100;
 
   if (!UUID_RE.test(item_id)) {
     fieldErrors.item_id = 'Choose the item to promote.';
   } else {
     // The item must exist and not be marked for deletion
-    const { data } = await supabaseAdmin().from('items_active').select('id').eq('id', item_id).maybeSingle();
-    if (!data) fieldErrors.item_id = 'This item is no longer available. Choose another one.';
+    const { data } = await supabaseAdmin()
+      .from('items_active').select('id, selling_price, purchase_price').eq('id', item_id).maybeSingle();
+    if (!data) {
+      fieldErrors.item_id = 'This item is no longer available. Choose another one.';
+    } else if (Number.isFinite(discount_percent) && discount_percent > 0) {
+      // The discount may not be more than the markup: the price may never go below cost
+      const max = maxDiscountPercent(Number(data.selling_price), Number(data.purchase_price));
+      if (discount_percent > max) {
+        fieldErrors.discount_percent = max > 0
+          ? `The discount can be at most ${max}%, the item's markup. More would sell it below cost.`
+          : 'This item has no markup, so it can’t be discounted.';
+      }
+    }
+  }
+  if (!Number.isFinite(discount_percent) || discount_percent < 0 || discount_percent >= 100) {
+    fieldErrors.discount_percent = 'Enter a discount from 0 to 99.99 %, or leave it empty for no discount.';
   }
   if (title.length < 2 || title.length > 80) fieldErrors.title = 'Enter a title of 2 to 80 characters.';
   if (!message || message.length > 1000) fieldErrors.message = 'Enter the message members will see (up to 1000 characters).';
@@ -35,7 +52,7 @@ async function readForm(formData: FormData) {
   if (!DATE_RE.test(ends_on)) fieldErrors.ends_on = 'Choose an end date.';
   else if (DATE_RE.test(starts_on) && ends_on < starts_on) fieldErrors.ends_on = 'The end date can’t be before the start date.';
 
-  return { fieldErrors, values: { item_id, title, message, starts_on, ends_on, is_active } };
+  return { fieldErrors, values: { item_id, title, message, starts_on, ends_on, is_active, discount_percent } };
 }
 
 export async function createPromotion(_prev: PromotionFormState, formData: FormData): Promise<PromotionFormState> {
@@ -44,7 +61,12 @@ export async function createPromotion(_prev: PromotionFormState, formData: FormD
   if (Object.keys(fieldErrors).length) return { fieldErrors, message: 'Check the highlighted fields and save again.' };
 
   const { error } = await supabaseAdmin().from('promotions').insert({ ...values, created_by: admin.id });
-  if (error) return { message: `The promotion could not be saved: ${error.message}` };
+  if (error) {
+    if (error.message.includes('DISCOUNT_ABOVE_MARKUP')) {
+      return { fieldErrors: { discount_percent: 'The discount is more than the item’s markup.' }, message: 'Check the highlighted fields and save again.' };
+    }
+    return { message: `The promotion could not be saved: ${error.message}` };
+  }
 
   revalidatePath('/admin/promotions');
   revalidatePath('/');
@@ -63,7 +85,12 @@ export async function updatePromotion(id: string, _prev: PromotionFormState, for
     .update({ ...values, is_deleted: markDeleted })
     .eq('id', id)
     .eq('is_deleted', false);
-  if (error) return { message: `The promotion could not be saved: ${error.message}` };
+  if (error) {
+    if (error.message.includes('DISCOUNT_ABOVE_MARKUP')) {
+      return { fieldErrors: { discount_percent: 'The discount is more than the item’s markup.' }, message: 'Check the highlighted fields and save again.' };
+    }
+    return { message: `The promotion could not be saved: ${error.message}` };
+  }
 
   revalidatePath('/admin/promotions');
   revalidatePath('/');

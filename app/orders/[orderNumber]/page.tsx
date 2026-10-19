@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { LineOptions } from '@/components/LineOptions';
+import { Price } from '@/components/Price';
 import { requireMember } from '@/lib/auth';
 import { getOrder } from '@/lib/orders';
 import { groupDigits } from '@/lib/banks';
@@ -66,7 +67,7 @@ export default async function OrderPage({
                   <div className="cart-line__info">
                     <h3 className="cart-line__name">{l.name}</h3>
                     <LineOptions size={l.size} colour={l.colour} note={l.note} />
-                    <p className="cart-line__unit">{l.quantity} × {formatMoney(l.unit_price)}</p>
+                    <p className="cart-line__unit">{l.quantity} × <Price price={l.unit_price} regular={l.regular_price} discount={l.discount_percent} /></p>
                   </div>
                   <p className="cart-line__total">{formatMoney(l.line_total)}</p>
                 </li>
