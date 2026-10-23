@@ -22,6 +22,7 @@ export async function ShellBar() {
               <Link href="/items" className="shellbar__link">Manage Items</Link>
               <Link href="/admin/orders" className="shellbar__link">Manage Orders</Link>
               <Link href="/admin/promotions" className="shellbar__link">Promotions</Link>
+              <Link href="/admin/members-import" className="shellbar__link">Import Members</Link>
               <Link href="/admin/banking" className="shellbar__link">Banking Details</Link>
             </>
           )}
