@@ -6,6 +6,7 @@ import { getAdminOrder } from '@/lib/admin-orders';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { ORDER_STATUS_LABEL } from '@/lib/order-status';
 import { OrderStatusActions } from '@/components/OrderStatusActions';
+import { hasInvoice } from '@/lib/invoice';
 import { PaymentReminderButton } from '@/components/PaymentReminderButton';
 
 export const dynamic = 'force-dynamic';
@@ -114,6 +115,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
 
             <section className="panel cart__summary" aria-labelledby="payment-title">
               <h2 id="payment-title" className="cart__summary-title">Payment</h2>
+              {hasInvoice(order.status) && (
+                <Link href={`/admin/orders/${order.order_number}/invoice`} className="btn">View Invoice</Link>
+              )}
               <dl className="bank-list">
                 <div><dt>Reference</dt><dd><strong>{order.order_number}</strong></dd></div>
                 <div><dt>Amount</dt><dd>{formatMoney(order.total)}</dd></div>

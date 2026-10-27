@@ -7,6 +7,7 @@ import { getOrder } from '@/lib/orders';
 import { groupDigits } from '@/lib/banks';
 import { formatDateTime, formatMoney, ORDER_STATUS_LABEL } from '@/lib/format';
 import { ResendEmailButton } from '@/components/ResendEmailButton';
+import { hasInvoice } from '@/lib/invoice';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,15 @@ export default async function OrderPage({
             </div>
           </section>
 
-          <aside className="panel cart__summary" aria-labelledby="pay-eft">
+          <aside className="stack">
+          {hasInvoice(order.status) && (
+            <section className="panel cart__summary" aria-labelledby="invoice-title">
+              <h2 id="invoice-title" className="cart__summary-title">Invoice</h2>
+              <p className="hint">Payment received, thank you. Your invoice is ready to print or save as PDF.</p>
+              <Link href={`/orders/${order.order_number}/invoice`} className="btn btn--emphasized">View Invoice</Link>
+            </section>
+          )}
+          <section className="panel cart__summary" aria-labelledby="pay-eft">
             <h2 id="pay-eft" className="cart__summary-title">Pay by EFT</h2>
             <dl className="bank-list">
               <div><dt>Account holder</dt><dd>{bank.account_holder}</dd></div>
@@ -101,6 +110,7 @@ export default async function OrderPage({
             )}
             {bank.payment_instructions && <p className="hint pre-line">{bank.payment_instructions}</p>}
             <ResendEmailButton orderNumber={order.order_number} />
+          </section>
           </aside>
         </div>
       </div>
