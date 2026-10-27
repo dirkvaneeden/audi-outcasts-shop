@@ -10,7 +10,8 @@ export async function ShellBar() {
   return (
     <header className="shellbar">
       <Link href="/" className="shellbar__brand" aria-label="Go to the store">
-        <span className="shellbar__logo" aria-hidden="true">AO</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo-rings-white.png" alt="" className="shellbar__logo-img" width={84} height={30} />
         <span className="shellbar__title">Audi Outcasts Store</span>
       </Link>
 

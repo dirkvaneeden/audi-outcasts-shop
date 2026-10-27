@@ -4,7 +4,7 @@ import { describeOptions } from '@/lib/line-options';
 import { formatDate, formatMoney } from '@/lib/format';
 
 const STORE_NAME = 'Audi Outcasts Store';
-const STORE_SHORT = 'AO';
+const LOGO = '/brand/logo-full.png';
 
 /** A4 invoice, designed to look right on screen and when printed or saved as PDF. */
 export function Invoice({ data }: { data: InvoiceData }) {
@@ -24,8 +24,9 @@ export function Invoice({ data }: { data: InvoiceData }) {
       {/* Header */}
       <header className="invoice__header">
         <div className="invoice__from">
-          <span className="invoice__logo" aria-hidden="true">{STORE_SHORT}</span>
-          <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO} alt={STORE_NAME} className="invoice__logo-img" width={128} height={100} />
+          <div className="invoice__from-text">
             <p className="invoice__store">{STORE_NAME}</p>
             <p className="invoice__muted">{bank.account_holder}</p>
             {bank.pop_email && <p className="invoice__muted">{bank.pop_email}</p>}
