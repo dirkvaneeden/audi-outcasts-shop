@@ -943,3 +943,14 @@ select.input { padding-right: 0.5rem; }
   .invoice__from { flex-direction: row; align-items: center; }
   .invoice__from-text { padding-left: 1.25rem; border-left: 1px solid #ddd; }
 }
+
+/* ======================================================================
+   Suppliers
+   ====================================================================== */
+.rtable__supplier { display: block; margin-top: 0.125rem; font-size: 0.8125rem; color: var(--sapLabelColor); }
+.rtable__supplier--none { color: var(--sapCritical); }
+.checkbox.is-disabled { color: var(--sapLabelColor); opacity: 0.6; cursor: default; }
+@media (max-width: 639px) {
+  .rtable--suppliers td[data-label] { display: flex; justify-content: space-between; gap: 1rem; }
+  .rtable--suppliers td[data-label]::before { content: attr(data-label); color: var(--sapLabelColor); }
+}

@@ -138,11 +138,13 @@ function perPerson(list: OpenOrder[], dateLabel: string, dateField: 'paid_at' | 
         ${td(esc(l.name))}
         ${td(esc(dash(l.size)), 'left', 'font-weight:bold;')}
         ${td(esc(dash(l.colour)))}
+        ${td(l.unit_cost == null ? '<span style="color:#bb0000;">not set</span>' : esc(formatMoney(l.unit_cost)), 'right', 'white-space:nowrap;color:#555555;')}
+        ${td(lineCost(l) == null ? '–' : esc(formatMoney(lineCost(l)!)), 'right', 'white-space:nowrap;font-weight:bold;')}
       </tr>
       ${l.note ? `
       <tr>
         <td></td>
-        <td colspan="3" style="padding:0 10px 10px;border-bottom:1px solid ${C.border};">
+        <td colspan="5" style="padding:0 10px 10px;border-bottom:1px solid ${C.border};">
           <div style="background:${C.note};border-left:4px solid ${C.noteBorder};padding:8px 10px;font-family:${FONT};font-size:14px;color:${C.text};">
             <strong>Note:</strong> ${esc(l.note)}
           </div>
@@ -152,19 +154,27 @@ function perPerson(list: OpenOrder[], dateLabel: string, dateField: 'paid_at' | 
     return `
     <tr><td style="padding:0 24px 14px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:4px;border-collapse:separate;">
-        <tr><td colspan="4" style="padding:10px 10px;background:${C.soft};border-bottom:1px solid ${C.border};font-family:${FONT};">
+        <tr><td colspan="6" style="padding:10px 10px;background:${C.soft};border-bottom:1px solid ${C.border};font-family:${FONT};">
           <span style="font-size:15px;font-weight:bold;color:${C.text};">${esc(order.member.name)}</span>
           <span style="font-size:13px;color:${C.label};">&nbsp;&nbsp;Order ${esc(order.order_number)} &middot; ${esc(dateLabel)} ${esc(formatDate(when))}</span>
         </td></tr>
-        <tr>${th('Qty', 'center', '40')}${th('Item')}${th('Size')}${th('Colour')}</tr>
+        <tr>${th('Qty', 'center', '40')}${th('Item')}${th('Size')}${th('Colour')}${th('Cost each', 'right', '90')}${th('Total', 'right', '95')}</tr>
         ${rows}
+        <tr>
+          <td colspan="4" style="padding:8px 10px;font-family:${FONT};font-size:13px;color:${C.label};">Order total at cost</td>
+          <td colspan="2" align="right" style="padding:8px 10px;font-family:${FONT};font-size:15px;font-weight:bold;color:${C.text};white-space:nowrap;">${esc(formatMoney(costTotals([{ order, lines }]).total))}</td>
+        </tr>
       </table>
     </td></tr>`;
   }).join('');
 }
 
 // ---------- Email ---------------------------------------------------------
-export function buildOpenOrdersEmail(open: OpenOrder[], contact: Contact) {
+export function buildOpenOrdersEmail(
+  open: OpenOrder[],
+  contact: Contact,
+  supplier?: { name: string; contact_person: string | null } | null,
+) {
   // Belt and braces: only paid and ordered orders that are not delivered
   const live = open.filter(({ order }) => (order.status === 'paid' || order.status === 'ordered') && !order.delivered_at);
   const toSupply = live.filter((o) => o.order.status === 'paid');
@@ -173,7 +183,9 @@ export function buildOpenOrdersEmail(open: OpenOrder[], contact: Contact) {
   const today = formatDate(new Date().toISOString());
   const newCost = costTotals(toSupply);
   const oldCost = costTotals(alreadyOrdered);
-  const subject = `Audi Outcasts supplier list ${today}: ${pieces(toSupply)} new pieces, ${formatMoney(newCost.total)}`;
+  const forWhom = supplier ? ` for ${supplier.name}` : '';
+  const subject = `Audi Outcasts supplier list${forWhom} ${today}: ${pieces(toSupply)} new pieces, ${formatMoney(newCost.total)}`;
+  const greeting = supplier ? `Hi ${supplier.contact_person?.trim() || supplier.name},<br><br>` : '';
 
   const empty = (text: string) =>
     `<tr><td style="padding:0 24px;font-family:${FONT};font-size:14px;color:${C.label};">${esc(text)}</td></tr>`;
@@ -188,11 +200,11 @@ export function buildOpenOrdersEmail(open: OpenOrder[], contact: Contact) {
     <tr><td style="background:${C.shell};padding:18px 24px;font-family:${FONT};">
       <span style="display:inline-block;background:#ffffff;color:${C.shell};font-weight:bold;font-size:13px;padding:6px 7px;border-radius:4px;vertical-align:middle;">AO</span>
       <span style="color:#ffffff;font-size:17px;font-weight:bold;vertical-align:middle;padding-left:10px;">Audi Outcasts: Supplier List</span>
-      <div style="color:#c3ccd5;font-size:13px;margin-top:6px;">${esc(today)}</div>
+      <div style="color:#c3ccd5;font-size:13px;margin-top:6px;">${supplier ? `For ${esc(supplier.name)} &middot; ` : ''}${esc(today)}</div>
     </td></tr>
 
     <tr><td style="padding:22px 24px 0;font-family:${FONT};font-size:14px;line-height:1.55;color:${C.text};">
-      Please supply the items in <strong>section 1</strong>. The first table gives the totals per size and colour,
+      ${greeting}Please supply the items in <strong>section 1</strong>. The first table gives the totals per size and colour,
       with cost prices and the <strong>total to be paid to you</strong>. The list under it shows who each item is for,
       including any notes such as names to print.
       <br><br>
@@ -252,14 +264,16 @@ export function buildOpenOrdersEmail(open: OpenOrder[], contact: Contact) {
   const personText = (list: OpenOrder[]) => list.flatMap(({ order, lines }) => [
     `${order.member.name} (order ${order.order_number})`,
     ...lines.flatMap((l) => [
-      `   ${String(l.quantity).padStart(3)} x ${l.name}, size ${dash(l.size)}, colour ${dash(l.colour)}`,
+      `   ${String(l.quantity).padStart(3)} x ${l.name}, size ${dash(l.size)}, colour ${dash(l.colour)}` +
+        (l.unit_cost == null ? '  (cost not set)' : `  @ ${formatMoney(l.unit_cost)} = ${formatMoney(lineCost(l)!)}`),
       ...(l.note ? [`         NOTE: ${l.note}`] : []),
     ]),
     '',
   ]);
 
   const text = [
-    `AUDI OUTCASTS: SUPPLIER LIST, ${today}`,
+    `AUDI OUTCASTS: SUPPLIER LIST${supplier ? ` FOR ${supplier.name.toUpperCase()}` : ''}, ${today}`,
+    ...(supplier ? [`Hi ${supplier.contact_person?.trim() || supplier.name},`] : []),
     `Questions? ${contact.name}, ${contact.email}`,
     '',
     `1. NEW ITEMS TO SUPPLY: ${pieces(toSupply)} pieces`,

@@ -11,12 +11,13 @@ import { TagInput } from '@/components/TagInput';
 
 type Props = {
   item?: Item;
+  suppliers?: { id: string; name: string }[];
   action: (state: FormState, formData: FormData) => Promise<FormState>;
 };
 
 const toInput = (n: number | undefined) => (n === undefined || n === null ? '' : String(Number(n)));
 
-export function ItemForm({ item, action }: Props) {
+export function ItemForm({ item, suppliers = [], action }: Props) {
   const isEdit = Boolean(item);
   const [state, formAction, pending] = useActionState(action, {});
 
@@ -205,6 +206,25 @@ export function ItemForm({ item, action }: Props) {
         </section>
 
         {/* ---------------- Options ---------------- */}
+        <section className="panel form-group" aria-labelledby="sec-supplier">
+          <h2 id="sec-supplier" className="form-group__title">Supplier</h2>
+          <div className="form-row">
+            <label htmlFor="supplier_id" className="form-label">Supplier</label>
+            <div className="form-field">
+              <select id="supplier_id" name="supplier_id" className="input"
+                defaultValue={suppliers.some((s) => s.id === item?.supplier_id) ? item!.supplier_id! : ''}>
+                <option value="">No supplier</option>
+                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <p className="hint">
+                {suppliers.length === 0
+                  ? <>No suppliers yet. <Link href="/admin/suppliers/new" className="link">Create a supplier</Link> first.</>
+                  : 'Orders for this item appear on this supplier’s list.'}
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="panel form-group" aria-labelledby="sec-options">
           <h2 id="sec-options" className="form-group__title">Sizes and Colours</h2>
 

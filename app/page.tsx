@@ -47,6 +47,7 @@ export default async function StorePage({
               <Link href="/items" className="page-header__link">Manage Items</Link>
               <Link href="/admin/orders" className="page-header__link">Manage Orders</Link>
               <Link href="/admin/promotions" className="page-header__link">Promotions</Link>
+              <Link href="/admin/suppliers" className="page-header__link">Suppliers</Link>
               <Link href="/admin/members-import" className="page-header__link">Import Members</Link>
               <Link href="/admin/banking" className="page-header__link">Banking Details</Link>
             </>

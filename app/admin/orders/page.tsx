@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { listAdminOrders, orderStatusCounts } from '@/lib/admin-orders';
 import { ADMIN_TABS, type OrderStatus } from '@/lib/order-status';
 import { AdminOrdersTable } from '@/components/AdminOrdersTable';
-import { EmailSummaryButton } from '@/components/EmailSummaryButton';
+import { SupplierListButton } from '@/components/SupplierListButton';
+import { listSuppliers } from '@/lib/suppliers';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export default async function AdminOrdersPage({
   const { status: raw } = await searchParams;
   const tab = (ADMIN_TABS.some((t) => t.key === raw) ? raw : 'awaiting_payment') as OrderStatus | 'all';
 
-  const [{ orders, error }, counts] = await Promise.all([listAdminOrders(tab), orderStatusCounts()]);
+  const [{ orders, error }, counts, suppliers] = await Promise.all([listAdminOrders(tab), orderStatusCounts(), listSuppliers()]);
   const tabLabel = ADMIN_TABS.find((t) => t.key === tab)!.label;
 
   return (
@@ -47,7 +48,7 @@ export default async function AdminOrdersPage({
           <div className="toolbar toolbar--wrap">
             <h2 className="toolbar__title">{tabLabel} ({orders.length})</h2>
             <span className="toolbar__spacer" />
-            <EmailSummaryButton />
+            <SupplierListButton suppliers={suppliers.map((s) => ({ id: s.id, name: s.name, email: s.email }))} />
           </div>
 
           {orders.length === 0 ? (

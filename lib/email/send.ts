@@ -6,10 +6,11 @@ type EmailInput = {
   html: string;
   text: string;
   replyTo?: string | null;
+  cc?: string | null;
 };
 
 /** Sends an email through the Resend API (https://resend.com). Throws on failure. */
-export async function sendEmail({ to, subject, html, text, replyTo }: EmailInput) {
+export async function sendEmail({ to, subject, html, text, replyTo, cc }: EmailInput) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.ORDER_EMAIL_FROM;
   if (!apiKey || !from) {
@@ -25,6 +26,7 @@ export async function sendEmail({ to, subject, html, text, replyTo }: EmailInput
       from,
       to: [to],
       ...(bcc ? { bcc: [bcc] } : {}),
+      ...(cc ? { cc: [cc] } : {}),
       ...(replyTo ? { reply_to: replyTo } : {}),
       subject,
       html,

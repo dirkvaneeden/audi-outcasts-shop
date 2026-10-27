@@ -70,7 +70,7 @@ export async function getAdminOrder(orderNumber: string) {
 export async function getOpenOrders() {
   const { data, error } = await supabaseAdmin()
     .from('orders')
-    .select(`${COLUMNS}, order_lines (${LINE_COLUMNS})`)
+    .select(`${COLUMNS}, order_lines (${LINE_COLUMNS}, item:items (supplier_id))`)
     .in('status', ['paid', 'ordered'])      // never delivered, rejected or unpaid
     .is('delivered_at', null)
     .order('created_at', { ascending: true });
@@ -79,7 +79,12 @@ export async function getOpenOrders() {
   return (data ?? [])
     .map((row) => {
       const { order_lines, ...rest } = row as unknown as Record<string, unknown> & { order_lines: Record<string, unknown>[] };
-      return { order: toOrder(rest), lines: toLines(order_lines) };
+      // Each line carries its item's current supplier
+      const lines = toLines(order_lines).map((l) => {
+        const { item, ...line } = l as typeof l & { item?: { supplier_id: string | null } | null };
+        return { ...line, supplier_id: item?.supplier_id ?? null };
+      });
+      return { order: toOrder(rest), lines };
     })
     .filter(({ order }) => order.status === 'paid' || order.status === 'ordered');
 }

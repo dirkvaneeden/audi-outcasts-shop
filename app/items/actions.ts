@@ -12,7 +12,7 @@ export type FormState = {
   fieldErrors?: Partial<Record<'name' | 'purchase_price' | 'markup_percent' | 'image', string>>;
 };
 
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;   // Vercel accepts requests up to 4.5 MB
 const IMAGE_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -45,6 +45,8 @@ function readForm(formData: FormData) {
   }
 
   // Available options; members must pick one when an item has any
+  const supplierRaw = String(formData.get('supplier_id') ?? '');
+  const supplier_id = /^[0-9a-f-]{36}$/i.test(supplierRaw) ? supplierRaw : null;   // '' = no supplier
   const sizes = cleanOptions(formData.getAll('sizes').map(String), 20);
   const colours = cleanOptions(formData.getAll('colours').map(String), 30);
 
@@ -56,6 +58,7 @@ function readForm(formData: FormData) {
       description,
       sizes,
       colours,
+      supplier_id,
       purchase_price: round(purchase, 2),
       markup_percent: round(markup, 4),
       // selling_price is calculated by the database trigger

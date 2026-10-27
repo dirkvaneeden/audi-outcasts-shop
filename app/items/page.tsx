@@ -3,6 +3,7 @@ import { supabaseAdmin, ACTIVE_ITEMS_VIEW } from '@/lib/supabase/server';
 import { formatMoney, formatPercent } from '@/lib/format';
 import type { Item } from '@/lib/types';
 import { DeleteItemButton } from '@/components/DeleteItemButton';
+import { listSuppliers } from '@/lib/suppliers';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,12 +21,13 @@ export default async function ItemsPage({
   const { msg } = await searchParams;
 
   // Always read from the active view: items marked for deletion never appear
-  const { data, error } = await supabaseAdmin()
-    .from(ACTIVE_ITEMS_VIEW)
-    .select('*')
-    .order('created_at', { ascending: false });
+  const [{ data, error }, suppliers] = await Promise.all([
+    supabaseAdmin().from(ACTIVE_ITEMS_VIEW).select('*').order('created_at', { ascending: false }),
+    listSuppliers(),
+  ]);
 
   const items = (data ?? []) as Item[];
+  const supplierName = new Map(suppliers.map((s) => [s.id, s.name]));
 
   return (
     <>
@@ -89,6 +91,11 @@ export default async function ItemsPage({
                           {item.colours?.length > 0 && <>Colours: {item.colours.join(', ')}</>}
                         </span>
                       )}
+                      <span className={`rtable__supplier${item.supplier_id && supplierName.has(item.supplier_id) ? '' : ' rtable__supplier--none'}`}>
+                        {item.supplier_id && supplierName.get(item.supplier_id)
+                          ? `Supplier: ${supplierName.get(item.supplier_id)}`
+                          : 'No supplier'}
+                      </span>
                     </td>
                     <td className="num" data-label="Purchase Price">{formatMoney(item.purchase_price)}</td>
                     <td className="num" data-label="Markup">{formatPercent(item.markup_percent)}</td>

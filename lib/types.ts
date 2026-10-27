@@ -12,6 +12,7 @@ export type Item = {
   selling_price: number;
   sizes: string[];
   colours: string[];
+  supplier_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -65,6 +66,7 @@ export type OrderLine = LineOptions & {
   line_no: number;
   unit_cost?: number | null;     // purchase price per unit; admin pages only
   regular_price?: number | null; // price before a promotion discount
+  supplier_id?: string | null;   // the item's current supplier (supplier lists only)
   discount_percent?: number;     // promotion discount the line was bought with
   item_id: string | null;
   name: string;
@@ -138,4 +140,14 @@ export type Promotion = {
   item: { name: string; image_url: string | null; is_deleted: boolean } | null;
   added: number;     // members who added it to their cart
   ignored: number;   // members who ignored it
+};
+
+/** A supplier (only those not marked for deletion are used by the apps). */
+export type Supplier = {
+  id: string;
+  name: string;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
 };
