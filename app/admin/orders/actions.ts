@@ -54,9 +54,10 @@ export async function sendSupplierList(supplierChoice: SupplierChoice, recipient
       .from('suppliers_active').select('id, name, contact_person, email');
     const active = new Map((suppliers ?? []).map((s) => [s.id as string, s]));
 
-    let supplier: { id: string; name: string; contact_person: string | null; email: string | null } | null = null;
+    type SupplierRow = { id: string; name: string; contact_person: string | null; email: string | null };
+    let supplier: SupplierRow | null = null;
     if (supplierChoice !== 'all' && supplierChoice !== 'none') {
-      supplier = (active.get(supplierChoice) as typeof supplier) ?? null;
+      supplier = (active.get(supplierChoice) as SupplierRow | undefined) ?? null;
       if (!supplier) return { error: 'This supplier no longer exists.' };
     }
     if (recipient !== 'me' && !supplier) return { error: 'Choose one supplier to send the list to the supplier.' };
