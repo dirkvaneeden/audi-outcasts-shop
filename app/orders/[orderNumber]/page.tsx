@@ -81,6 +81,20 @@ export default async function OrderPage({
           </section>
 
           <aside className="stack">
+          {order.status === 'ready_for_collection' && (
+            <section className="panel cart__summary collection" aria-labelledby="collect-title">
+              <h2 id="collect-title" className="cart__summary-title">Ready for collection</h2>
+              <p>Your order has arrived. Please contact {order.collection_contact?.name ?? 'the club admin'} to arrange collection.</p>
+              {order.collection_contact && (
+                <dl className="bank-list">
+                  {order.collection_contact.phone && (
+                    <div><dt>Phone</dt><dd><a className="link" href={`tel:${order.collection_contact.phone.replace(/[^\d+]/g, '')}`}>{order.collection_contact.phone}</a></dd></div>
+                  )}
+                  <div><dt>Email</dt><dd><a className="link" href={`mailto:${order.collection_contact.email}?subject=Collecting%20order%20${order.order_number}`}>{order.collection_contact.email}</a></dd></div>
+                </dl>
+              )}
+            </section>
+          )}
           {hasInvoice(order.status) && (
             <section className="panel cart__summary" aria-labelledby="invoice-title">
               <h2 id="invoice-title" className="cart__summary-title">Invoice</h2>

@@ -954,3 +954,10 @@ select.input { padding-right: 0.5rem; }
   .rtable--suppliers td[data-label] { display: flex; justify-content: space-between; gap: 1rem; }
   .rtable--suppliers td[data-label]::before { content: attr(data-label); color: var(--sapLabelColor); }
 }
+
+/* ======================================================================
+   Ready for collection
+   ====================================================================== */
+.status--ready_for_collection { color: #1d551d; background: var(--sapPositive_Bg); border-color: var(--sapPositive); }
+.collection { border-top: 4px solid var(--sapPositive); }
+.collection p { margin: 0; }

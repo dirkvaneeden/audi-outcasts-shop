@@ -86,7 +86,12 @@ export type Order = {
   email_sent_at: string | null;
   email_error: string | null;
   created_at: string;
+  ready_at?: string | null;
+  collection_contact?: CollectionContact | null;
 };
+
+/** The admin a member contacts to arrange collection (copied onto the order). */
+export type CollectionContact = { name: string; email: string; phone: string | null };
 
 /** Order as seen on the admin pages, with the member who placed it. */
 export type AdminOrder = Order & {
@@ -97,6 +102,9 @@ export type AdminOrder = Order & {
   status_note: string | null;
   reminder_count: number;
   last_reminder_at: string | null;
+  ready_at: string | null;
+  collection_email_sent_at: string | null;
+  collection_email_error: string | null;
   member: { member_number: string; name: string; nickname: string | null; email: string; phone: string | null };
 };
 

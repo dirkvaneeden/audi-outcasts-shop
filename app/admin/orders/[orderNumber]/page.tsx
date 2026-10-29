@@ -8,6 +8,7 @@ import { ORDER_STATUS_LABEL } from '@/lib/order-status';
 import { OrderStatusActions } from '@/components/OrderStatusActions';
 import { hasInvoice } from '@/lib/invoice';
 import { PaymentReminderButton } from '@/components/PaymentReminderButton';
+import { CollectionEmailButton } from '@/components/CollectionEmailButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
     { label: 'Placed', at: order.created_at },
     { label: 'Paid', at: order.paid_at },
     { label: 'Ordered', at: order.ordered_at },
+    { label: 'Ready for collection', at: order.ready_at },
     { label: 'Delivered', at: order.delivered_at },
   ];
 
@@ -101,6 +103,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
               </ol>
               <OrderStatusActions orderId={order.id} status={order.status} />
               {order.status === 'awaiting_payment' && <PaymentReminderButton orderId={order.id} />}
+              {order.status === 'ready_for_collection' && <CollectionEmailButton orderId={order.id} />}
             </section>
 
             <section className="panel cart__summary" aria-labelledby="member-title">
@@ -123,6 +126,11 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
                 <div><dt>Amount</dt><dd>{formatMoney(order.total)}</dd></div>
                 <div><dt>Into account</dt><dd>{order.bank_details.bank_name} {order.bank_details.account_number}</dd></div>
                 <div><dt>Order email</dt><dd>{order.email_sent_at ? `Sent ${formatDateTime(order.email_sent_at)}` : 'Not sent'}</dd></div>
+                {order.ready_at && (
+                  <div><dt>Collection email</dt><dd>{order.collection_email_sent_at
+                    ? `Sent ${formatDateTime(order.collection_email_sent_at)}`
+                    : order.collection_email_error ? `Failed: ${order.collection_email_error}` : 'Not sent'}</dd></div>
+                )}
                 <div><dt>Reminders</dt><dd>{order.reminder_count > 0
                   ? `${order.reminder_count} sent${order.last_reminder_at ? `, last ${formatDateTime(order.last_reminder_at)}` : ''}`
                   : 'None'}</dd></div>

@@ -5,6 +5,8 @@ import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { getOpenOrders } from '@/lib/admin-orders';
 import { sendOrderEmail } from '@/lib/orders';
+import { sendCollectionEmail } from '@/lib/collection';
+import type { CollectionContact } from '@/lib/types';
 import { buildOpenOrdersEmail } from '@/lib/email/open-orders-email';
 import { sendEmail } from '@/lib/email/send';
 import { ORDER_STATUS_LABEL, type OrderStatus } from '@/lib/order-status';
@@ -22,22 +24,54 @@ export async function setOrderStatus(orderIds: string[], status: OrderStatus, no
 
   const supabase = supabaseAdmin();
   const failed: string[] = [];
+  const updated: string[] = [];
   for (const id of ids) {
     const { error } = await supabase.rpc('set_order_status', {
       p_order_id: id, p_status: status, p_admin_id: admin.id, p_note: note?.trim() || null,
     });
     if (error) failed.push(error.message.replace(/^INVALID_TRANSITION /, ''));
+    else updated.push(id);
+  }
+
+  // Ready for collection: tell each member to arrange collection with this admin
+  let emailNote = '';
+  if (status === 'ready_for_collection' && updated.length) {
+    const contact = await adminContact(admin.id, admin.name, admin.email);
+    const emailFailed: string[] = [];
+    for (const id of updated) {
+      const r = await sendCollectionEmail(id, contact);
+      if (r.error) emailFailed.push(`${r.orderNumber ?? 'order'}: ${r.error}`);
+    }
+    const sent = updated.length - emailFailed.length;
+    emailNote = ` Collection email sent to ${sent} ${sent === 1 ? 'member' : 'members'}.`;
+    if (emailFailed.length) emailNote += ` Not sent for ${emailFailed.length}: ${emailFailed[0]}. Use Resend Collection Email on the order.`;
   }
 
   revalidatePath('/admin/orders', 'layout');
   revalidatePath('/orders', 'layout');
 
-  const done = ids.length - failed.length;
+  const done = updated.length;
   const label = ORDER_STATUS_LABEL[status];
   if (failed.length) {
-    return { error: `${done} of ${ids.length} updated. The rest could not change to ${label}: ${failed[0]}` };
+    return { error: `${done} of ${ids.length} updated. The rest could not change to ${label}: ${failed[0]}.${emailNote}` };
   }
-  return { info: done === 1 ? `Order updated to ${label}.` : `${done} orders updated to ${label}.` };
+  const base = done === 1 ? `Order updated to ${label}.` : `${done} orders updated to ${label}.`;
+  return emailNote.includes('Not sent') ? { error: base + emailNote } : { info: base + emailNote };
+}
+
+/** The signed-in admin's contact details, as given to members for collection. */
+async function adminContact(adminId: string, name: string, email: string): Promise<CollectionContact> {
+  const { data } = await supabaseAdmin().from('members').select('phone').eq('id', adminId).maybeSingle();
+  return { name, email, phone: (data?.phone as string | null) ?? null };
+}
+
+/** Sends the "ready for collection" email again (e.g. after an email failure). */
+export async function resendCollectionEmail(orderId: string): Promise<AdminActionResult> {
+  const admin = await requireAdmin();
+  if (!UUID_RE.test(orderId)) return { error: 'Order not found.' };
+  const r = await sendCollectionEmail(orderId, await adminContact(admin.id, admin.name, admin.email));
+  revalidatePath('/admin/orders', 'layout');
+  return r.error ? { error: `The collection email could not be sent: ${r.error}` } : { info: 'Collection email sent.' };
 }
 
 export type SupplierChoice = 'all' | 'none' | string;   // 'none' = items without a supplier

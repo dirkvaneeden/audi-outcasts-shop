@@ -1,10 +1,11 @@
 /** Order statuses, labels and the steps an admin may take. Safe to use in client components. */
-export type OrderStatus = 'awaiting_payment' | 'paid' | 'ordered' | 'delivered' | 'rejected' | 'cancelled';
+export type OrderStatus = 'awaiting_payment' | 'paid' | 'ordered' | 'ready_for_collection' | 'delivered' | 'rejected' | 'cancelled';
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   awaiting_payment: 'Awaiting payment',
   paid: 'Paid',
   ordered: 'Ordered',
+  ready_for_collection: 'Ready for collection',
   delivered: 'Delivered',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
@@ -24,10 +25,14 @@ export const TRANSITIONS: Record<OrderStatus, Transition[]> = {
     { to: 'awaiting_payment', label: 'Undo: Back to Unpaid', kind: 'undo' },
   ],
   ordered: [
-    { to: 'delivered', label: 'Mark as Delivered', kind: 'primary' },
+    { to: 'ready_for_collection', label: 'Mark as Ready for Collection', kind: 'primary' },
     { to: 'paid', label: 'Undo: Back to Paid', kind: 'undo' },
   ],
-  delivered: [{ to: 'ordered', label: 'Undo: Back to Ordered', kind: 'undo' }],
+  ready_for_collection: [
+    { to: 'delivered', label: 'Mark as Delivered', kind: 'primary' },
+    { to: 'ordered', label: 'Undo: Back to Ordered', kind: 'undo' },
+  ],
+  delivered: [{ to: 'ready_for_collection', label: 'Undo: Back to Ready for Collection', kind: 'undo' }],
   rejected: [{ to: 'awaiting_payment', label: 'Reopen as Unpaid', kind: 'undo' }],
   cancelled: [],
 };
@@ -38,6 +43,7 @@ export const ADMIN_TABS: { key: OrderStatus | 'all'; label: string }[] = [
   { key: 'awaiting_payment', label: 'Unpaid' },
   { key: 'paid', label: 'Paid' },
   { key: 'ordered', label: 'Ordered' },
+  { key: 'ready_for_collection', label: 'Ready' },
   { key: 'delivered', label: 'Delivered' },
   { key: 'rejected', label: 'Rejected' },
   { key: 'all', label: 'All' },

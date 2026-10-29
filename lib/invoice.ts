@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 import type { Order, OrderLine } from '@/lib/types';
 
 /** Orders get an invoice once payment has been received. */
-export const INVOICE_STATUSES = ['paid', 'ordered', 'delivered'] as const;
+export const INVOICE_STATUSES = ['paid', 'ordered', 'ready_for_collection', 'delivered'] as const;
 export const hasInvoice = (status: string) => (INVOICE_STATUSES as readonly string[]).includes(status);
 
 /** ORD100001 -> INV100001: the invoice number follows the order number. */

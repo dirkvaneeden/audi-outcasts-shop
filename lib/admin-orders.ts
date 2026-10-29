@@ -5,6 +5,7 @@ import type { OrderStatus } from '@/lib/order-status';
 
 const COLUMNS = `id, order_number, status, item_count, total, bank_details, email_sent_at, email_error,
   created_at, paid_at, ordered_at, delivered_at, rejected_at, status_note, reminder_count, last_reminder_at,
+  ready_at, collection_contact, collection_email_sent_at, collection_email_error,
   member:members (member_number, name, nickname, email, phone)`;
 const LINE_COLUMNS = 'line_no, item_id, name, image_url, unit_price, quantity, line_total, size, colour, note, unit_cost, regular_price, discount_percent';
 

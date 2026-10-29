@@ -4,7 +4,7 @@ import { buildOrderEmail } from '@/lib/email/order-email';
 import { sendEmail } from '@/lib/email/send';
 import type { Order, OrderLine } from '@/lib/types';
 
-const ORDER_COLUMNS = 'id, order_number, status, item_count, total, bank_details, email_sent_at, email_error, created_at';
+const ORDER_COLUMNS = 'id, order_number, status, item_count, total, bank_details, email_sent_at, email_error, created_at, ready_at, collection_contact';
 
 function toOrder(row: Record<string, unknown>): Order {
   return { ...(row as Order), total: Number(row.total), item_count: Number(row.item_count) };

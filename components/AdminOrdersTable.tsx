@@ -11,6 +11,7 @@ const DATE_COLUMN: Record<string, { label: string; field: keyof AdminOrder }> = 
   awaiting_payment: { label: 'Placed', field: 'created_at' },
   paid: { label: 'Paid', field: 'paid_at' },
   ordered: { label: 'Ordered', field: 'ordered_at' },
+  ready_for_collection: { label: 'Ready', field: 'ready_at' },
   delivered: { label: 'Delivered', field: 'delivered_at' },
   rejected: { label: 'Rejected', field: 'rejected_at' },
   all: { label: 'Placed', field: 'created_at' },
