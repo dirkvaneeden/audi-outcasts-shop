@@ -9,13 +9,14 @@ export function OrderStatusActions({ orderId, status }: { orderId: string; statu
   const [result, setResult] = useState<AdminActionResult>({});
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
+  const [notifyCollection, setNotifyCollection] = useState(true);
 
   const transitions = TRANSITIONS[status];
 
   function run(t: Transition, note?: string) {
     if (t.kind === 'undo' && !window.confirm(`${t.label}?`)) return;
     startTransition(async () => {
-      const r = await setOrderStatus([orderId], t.to, note);
+      const r = await setOrderStatus([orderId], t.to, note, { notifyCollection: t.to === 'ready_for_collection' && notifyCollection });
       setResult(r);
       if (!r.error) { setRejecting(false); setReason(''); }
     });
@@ -30,6 +31,12 @@ export function OrderStatusActions({ orderId, status }: { orderId: string; statu
           role={result.error ? 'alert' : 'status'}>{result.error ?? result.info}</div>
       )}
 
+      {!rejecting && status === 'ordered' && (
+        <label className="checkbox">
+          <input type="checkbox" checked={notifyCollection} onChange={(e) => setNotifyCollection(e.target.checked)} />
+          <span>Email the member when marked ready for collection</span>
+        </label>
+      )}
       {!rejecting && (
         <div className="status-actions__buttons">
           {transitions.map((t) => (

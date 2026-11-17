@@ -16,7 +16,13 @@ export type AdminActionResult = { error?: string; info?: string };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Changes the status of one or more orders. Each order is checked by the database. */
-export async function setOrderStatus(orderIds: string[], status: OrderStatus, note?: string): Promise<AdminActionResult> {
+/** options.notifyCollection: email members when their order becomes Ready for collection (off unless asked). */
+export async function setOrderStatus(
+  orderIds: string[],
+  status: OrderStatus,
+  note?: string,
+  options: { notifyCollection?: boolean } = {},
+): Promise<AdminActionResult> {
   const admin = await requireAdmin();
   if (!(status in ORDER_STATUS_LABEL)) return { error: 'Unknown status.' };
   const ids = orderIds.filter((id) => UUID_RE.test(id)).slice(0, 200);
@@ -35,7 +41,7 @@ export async function setOrderStatus(orderIds: string[], status: OrderStatus, no
 
   // Ready for collection: tell each member to arrange collection with this admin
   let emailNote = '';
-  if (status === 'ready_for_collection' && updated.length) {
+  if (status === 'ready_for_collection' && updated.length && options.notifyCollection) {
     const contact = await adminContact(admin.id, admin.name, admin.email);
     const emailFailed: string[] = [];
     for (const id of updated) {
@@ -44,7 +50,7 @@ export async function setOrderStatus(orderIds: string[], status: OrderStatus, no
     }
     const sent = updated.length - emailFailed.length;
     emailNote = ` Collection email sent to ${sent} ${sent === 1 ? 'member' : 'members'}.`;
-    if (emailFailed.length) emailNote += ` Not sent for ${emailFailed.length}: ${emailFailed[0]}. Use Resend Collection Email on the order.`;
+    if (emailFailed.length) emailNote += ` Not sent for ${emailFailed.length}: ${emailFailed[0]}. Use Send Collection Email on the order.`;
   }
 
   revalidatePath('/admin/orders', 'layout');
@@ -52,6 +58,9 @@ export async function setOrderStatus(orderIds: string[], status: OrderStatus, no
 
   const done = updated.length;
   const label = ORDER_STATUS_LABEL[status];
+  if (status === 'ready_for_collection' && done && !options.notifyCollection) {
+    emailNote = ' No collection email was sent; use Send Collection Email on the order when you’re ready.';
+  }
   if (failed.length) {
     return { error: `${done} of ${ids.length} updated. The rest could not change to ${label}: ${failed[0]}.${emailNote}` };
   }

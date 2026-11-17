@@ -159,3 +159,15 @@ export type Supplier = {
   phone: string | null;
   notes: string | null;
 };
+
+/** A review as shown in the store (name is null when the member chose to hide it). */
+export type PublicReview = {
+  id: string;
+  item_id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  reviewer_name: string | null;
+};
+
+export type RatingStats = { avg_rating: number; review_count: number };

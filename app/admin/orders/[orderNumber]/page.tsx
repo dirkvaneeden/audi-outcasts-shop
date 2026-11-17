@@ -9,6 +9,7 @@ import { OrderStatusActions } from '@/components/OrderStatusActions';
 import { hasInvoice } from '@/lib/invoice';
 import { PaymentReminderButton } from '@/components/PaymentReminderButton';
 import { CollectionEmailButton } from '@/components/CollectionEmailButton';
+import { RequestReviewsDialog } from '@/components/RequestReviewsDialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +104,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ ord
               </ol>
               <OrderStatusActions orderId={order.id} status={order.status} />
               {order.status === 'awaiting_payment' && <PaymentReminderButton orderId={order.id} />}
-              {order.status === 'ready_for_collection' && <CollectionEmailButton orderId={order.id} />}
+              {order.status === 'ready_for_collection' && <CollectionEmailButton orderId={order.id} sent={!!order.collection_email_sent_at} />}
+              {(order.status === 'ready_for_collection' || order.status === 'delivered') && (
+                <RequestReviewsDialog orderIds={[order.id]} label="Request Review" />
+              )}
             </section>
 
             <section className="panel cart__summary" aria-labelledby="member-title">

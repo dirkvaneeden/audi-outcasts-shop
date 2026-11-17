@@ -5,6 +5,8 @@ import { getCartLines } from '@/lib/cart';
 import type { CatalogueItem } from '@/lib/types';
 import { AddToCartDialog } from '@/components/AddToCartDialog';
 import { Price } from '@/components/Price';
+import { Stars } from '@/components/StarRating';
+import { getRatingStats } from '@/lib/reviews';
 import { PromotionQueue } from '@/components/PromotionPopup';
 import { getPromotionsForMember } from '@/lib/promotions';
 
@@ -26,8 +28,8 @@ export default async function StorePage({
     .order('name');
   if (term) query = query.ilike('name', `%${term.replace(/[\\%_]/g, (c) => '\\' + c)}%`);
 
-  const [{ data, error }, cart, promotions] = await Promise.all([
-    query, getCartLines(member.id), getPromotionsForMember(member.id),
+  const [{ data, error }, cart, promotions, ratings] = await Promise.all([
+    query, getCartLines(member.id), getPromotionsForMember(member.id), getRatingStats(),
   ]);
   const items = (data ?? []) as CatalogueItem[];
   // Quantity in the cart per item, across all its sizes and colours
@@ -48,6 +50,7 @@ export default async function StorePage({
               <Link href="/admin/orders" className="page-header__link">Manage Orders</Link>
               <Link href="/admin/promotions" className="page-header__link">Promotions</Link>
               <Link href="/admin/suppliers" className="page-header__link">Suppliers</Link>
+              <Link href="/admin/reviews" className="page-header__link">Reviews</Link>
               <Link href="/admin/members-import" className="page-header__link">Import Members</Link>
               <Link href="/admin/banking" className="page-header__link">Banking Details</Link>
             </>
@@ -85,16 +88,22 @@ export default async function StorePage({
             <ul className="catalogue">
               {items.map((item) => (
                 <li key={item.id} className="product">
-                  <div className="product__image">
+                  <Link href={`/products/${item.id}`} className="product__image" aria-label={`${item.name}: details and reviews`}>
                     {item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.image_url} alt={item.name} loading="lazy" />
                     ) : (
                       <span className="product__noimage">No image</span>
                     )}
-                  </div>
+                  </Link>
                   <div className="product__body">
-                    <h3 className="product__name">{item.name}</h3>
+                    <h3 className="product__name"><Link href={`/products/${item.id}`} className="product__link">{item.name}</Link></h3>
+                    {ratings.get(item.id) && (
+                      <Link href={`/products/${item.id}#reviews`} className="product__rating">
+                        <Stars value={ratings.get(item.id)!.avg_rating} size="sm" />
+                        <span>{ratings.get(item.id)!.avg_rating.toFixed(1)} ({ratings.get(item.id)!.review_count})</span>
+                      </Link>
+                    )}
                     {item.description && <p className="product__desc">{item.description}</p>}
                     {(item.sizes?.length > 0 || item.colours?.length > 0) && (
                       <p className="product__options">

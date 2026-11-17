@@ -6,6 +6,7 @@ import type { AdminOrder } from '@/lib/types';
 import { ORDER_STATUS_LABEL, primaryTransition, type OrderStatus } from '@/lib/order-status';
 import { formatDate, formatMoney } from '@/lib/format';
 import { sendPaymentReminders, setOrderStatus, type AdminActionResult } from '@/app/admin/orders/actions';
+import { RequestReviewsDialog } from '@/components/RequestReviewsDialog';
 
 const DATE_COLUMN: Record<string, { label: string; field: keyof AdminOrder }> = {
   awaiting_payment: { label: 'Placed', field: 'created_at' },
@@ -21,7 +22,10 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<AdminActionResult>({});
+  const [notifyCollection, setNotifyCollection] = useState(true);
+  const showNotify = tab === 'ordered' || tab === 'all';
 
+  const canReview = tab === 'delivered' || tab === 'ready_for_collection';
   const bulk = tab === 'all' ? undefined : primaryTransition(tab);
   const dateCol = DATE_COLUMN[tab];
   const allSelected = orders.length > 0 && selected.size === orders.length;
@@ -46,7 +50,7 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
   function run(ids: string[], to: OrderStatus, label: string) {
     if (ids.length > 1 && !window.confirm(`${label}: ${ids.length} orders?`)) return;
     startTransition(async () => {
-      const r = await setOrderStatus(ids, to);
+      const r = await setOrderStatus(ids, to, undefined, { notifyCollection: to === 'ready_for_collection' && notifyCollection });
       setResult(r);
       if (!r.error) setSelected(new Set());
     });
@@ -54,20 +58,34 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
 
   return (
     <>
-      {bulk && (
+      {(bulk || canReview || showNotify) && (
         <div className="bulkbar">
-          <span className="bulkbar__count">{selected.size ? `${selected.size} selected` : 'Select orders to update several at once'}</span>
+          <span className="bulkbar__count">
+            {!(bulk || canReview) ? '' : selected.size ? `${selected.size} selected` : 'Select orders to update several at once'}
+          </span>
           <span className="bulkbar__buttons">
+            {showNotify && (
+              <label className="checkbox bulkbar__notify">
+                <input type="checkbox" checked={notifyCollection} onChange={(e) => setNotifyCollection(e.target.checked)} />
+                <span>Email members when ready for collection</span>
+              </label>
+            )}
             {tab === 'awaiting_payment' && (
               <button type="button" className="btn" disabled={pending || selected.size === 0}
                 onClick={() => remind([...selected])}>
                 {`Send Payment Reminder${selected.size ? ` (${selected.size})` : ''}`}
               </button>
             )}
-            <button type="button" className="btn btn--emphasized" disabled={pending || selected.size === 0}
-              onClick={() => run([...selected], bulk.to, bulk.label)}>
-              {pending ? 'Updating…' : `${bulk.label}${selected.size ? ` (${selected.size})` : ''}`}
-            </button>
+            {canReview && (
+              <RequestReviewsDialog orderIds={[...selected]}
+                label={`Request Reviews${selected.size ? ` (${selected.size})` : ''}`} />
+            )}
+            {bulk && (
+              <button type="button" className="btn btn--emphasized" disabled={pending || selected.size === 0}
+                onClick={() => run([...selected], bulk.to, bulk.label)}>
+                {pending ? 'Updating…' : `${bulk.label}${selected.size ? ` (${selected.size})` : ''}`}
+              </button>
+            )}
           </span>
         </div>
       )}
@@ -81,7 +99,7 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
       <table className="rtable rtable--admin-orders">
         <thead>
           <tr>
-            {bulk && (
+            {(bulk || canReview) && (
               <th className="rtable__check">
                 <input type="checkbox" aria-label="Select all orders" checked={allSelected}
                   onChange={() => setSelected(allSelected ? new Set() : new Set(orders.map((o) => o.id)))} />
@@ -102,7 +120,7 @@ export function AdminOrdersTable({ orders, tab }: { orders: AdminOrder[]; tab: O
             const date = o[dateCol.field] as string | null;
             return (
               <tr key={o.id} className={selected.has(o.id) ? 'is-selected' : undefined}>
-                {bulk && (
+                {(bulk || canReview) && (
                   <td className="rtable__check">
                     <input type="checkbox" aria-label={`Select ${o.order_number}`}
                       checked={selected.has(o.id)} onChange={() => toggle(o.id)} />
